@@ -1,2 +1,2 @@
-# Odyssey2_Dev
-Repo for messing with O2 code
+# KC and Pal
+Project to learn assembly code for the Magnavox Odyssey 2.  Working on a game similar to Pac & Pal
