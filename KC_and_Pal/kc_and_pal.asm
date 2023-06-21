@@ -13,6 +13,9 @@
 ; Internal RAM variables
 iram_score_start        equ     020h    ; First 8 bits of score
 iram_score_end          equ     021h    ; Second 8 bits of score
+animation_flag			equ     022h    ; animation_flag
+
+
 
 ; Page 1 - Initialization routines (except grid) and main loop
     align   256
@@ -119,7 +122,7 @@ init_sprites:
 ; Loop that runs for every game frame
 game_loop:
     
-    ; Activate collision check for pac-man sprite on next frame
+    ; Activate collision check for kc sprite on next frame
     mov     r0,#vdc_collision
     mov     a,#vdc_coll_spr0
     movx    @r0,a 
@@ -173,6 +176,8 @@ move_player:
     anl     a,#008h
     jnz     move_left
 
+    call    neutral_animate
+
     ret
 
 
@@ -185,7 +190,13 @@ move_up:
     add     a,#0ffh
     movx    @r1,a
 
-    jmp     game_loop
+    ; For alternating animation frames
+    ; Not sure this actually works
+    ; But everything fucking breaks without it
+    mov     r0,#animation_flag
+    anl     a,r0
+    jnz     up_animate
+    jmp     closed_animate
 
 
 ; Move player sprite down
@@ -197,8 +208,11 @@ move_down:
     add     a,#001h 
     movx    @r1,a
 
-    jmp     game_loop
-
+    ; For alternating animation frames
+    mov     r0,#animation_flag
+    anl     a,r0
+    jnz     down_animate
+    jmp     closed_animate
 
 ; Move player sprite left
 move_left:
@@ -209,9 +223,12 @@ move_left:
     add     a,#0ffh 
     movx    @r1,a
 
+    ; For alternating animation frames
+    mov     r0,#animation_flag
+    anl     a,r0
+    jnz     left_animate
+    jmp     closed_animate
 
-
-    jmp     game_loop
 
 
 ; Move player sprite right
@@ -223,10 +240,14 @@ move_right:
     add     a,#001h 
     movx    @r1,a
 
-    jmp     game_loop
+    ; For alternating animation frames
+    mov     r0,#animation_flag
+    anl     a,r0
+    jnz     right_animate
+    jmp     closed_animate
 
 
-; Checks if pac-man is colliding with grid
+; Checks if kc is colliding with grid
 ; If collision, move back to pre-movement position
 kc_grid_col_check: 
 
@@ -239,7 +260,7 @@ kc_grid_col_check:
 
     ret
 
-; Moves pac-man back if collide with grid     
+; Moves kc back if collide with grid     
 kc_col_grid:
 
     mov     r0,#000h
@@ -250,6 +271,76 @@ kc_col_grid:
     movx    @r0,a
 
     jmp     game_loop    
+
+
+left_animate:
+    mov     r0,#vdc_spr0_shape         
+    mov     r1,#kc_left & 0ffh    
+    mov     r7,#8
+    call    copy_sprite
+
+    ; set flag to zero
+    mov     r0,#animation_flag
+    mov     @r0,#000h
+
+    jmp     game_loop
+
+
+right_animate:
+    mov     r0,#vdc_spr0_shape         
+    mov     r1,#kc_right & 0ffh    
+    mov     r7,#8
+    call    copy_sprite
+
+    ; set flag to zero
+    mov     r0,#animation_flag
+    mov     @r0,#000h
+
+    jmp     game_loop
+
+
+down_animate:
+    mov     r0,#vdc_spr0_shape         
+    mov     r1,#kc_down & 0ffh    
+    mov     r7,#8
+    call    copy_sprite
+
+    ; set flag to zero
+    mov     r0,#animation_flag
+    mov     @r0,#000h
+
+    jmp     game_loop
+
+up_animate:
+    mov     r0,#vdc_spr0_shape         
+    mov     r1,#kc_up & 0ffh    
+    mov     r7,#8
+    call    copy_sprite
+
+    ; set flag to zero
+    mov     r0,#animation_flag
+    mov     @r0,#000h
+
+    jmp     game_loop
+
+closed_animate:
+    mov     r0,#vdc_spr0_shape         
+    mov     r1,#kc_closed & 0ffh    
+    mov     r7,#8
+    call    copy_sprite
+
+    ;set flag to one
+    mov     r0,#animation_flag
+    mov     @r0,#1
+
+    jmp     game_loop
+
+
+neutral_animate:
+    mov     r0,#vdc_spr0_shape         
+    mov     r1,#kc_neutral & 0ffh    
+    mov     r7,#8
+    call    copy_sprite
 
 
 ; ***NEW PAGE***
@@ -404,3 +495,52 @@ kc_neutral:
     db  01000010b
     db  00111100b
 
+kc_right:
+    db	01111101b
+    db  00110110b
+    db  00011110b
+    db  00000111b 
+    db  00001110b
+    db  00111100b 
+    db  01111000b
+    db  00000000b
+
+kc_left:
+    db	10111110b
+    db  01101100b
+    db  01111000b
+    db  11100000b 
+    db  01110000b
+    db  00111100b 
+    db  00011110b
+    db  00000000b
+
+kc_closed:
+    db	00011000b
+    db  00111100b
+    db  01111110b
+    db  11111111b 
+    db  01111110b
+    db  00111100b 
+    db  00011000b
+    db  00000000b
+
+kc_down:
+    db	10010000b
+    db  01111100b
+    db  11111110b
+    db  10110111b 
+    db  11100111b
+    db  11000011b 
+    db  10000001b
+    db  00000000b
+
+kc_up:
+    db	00000000b
+    db  10000001b
+    db  11000011b
+    db  11100111b 
+    db  10110111b
+    db  11111110b 
+    db  01111100b
+    db  10010000b
