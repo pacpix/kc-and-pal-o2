@@ -190,11 +190,12 @@ move_up:
     add     a,#0ffh
     movx    @r1,a
 
+    
+
     ; For alternating animation frames
-    ; Not sure this actually works
-    ; But everything fucking breaks without it
-    mov     r0,#animation_flag
-    anl     a,r0
+    ; If i'm being completely honest i dont know why this works
+    ; Like it literally doesnt matter if i set the flag anywhere or not
+    anl     a,#animation_flag
     jnz     up_animate
     jmp     closed_animate
 
@@ -209,8 +210,7 @@ move_down:
     movx    @r1,a
 
     ; For alternating animation frames
-    mov     r0,#animation_flag
-    anl     a,r0
+    anl     a,#animation_flag
     jnz     down_animate
     jmp     closed_animate
 
@@ -224,8 +224,7 @@ move_left:
     movx    @r1,a
 
     ; For alternating animation frames
-    mov     r0,#animation_flag
-    anl     a,r0
+    anl     a,#animation_flag
     jnz     left_animate
     jmp     closed_animate
 
@@ -241,8 +240,7 @@ move_right:
     movx    @r1,a
 
     ; For alternating animation frames
-    mov     r0,#animation_flag
-    anl     a,r0
+    anl     a,#animation_flag
     jnz     right_animate
     jmp     closed_animate
 
@@ -278,11 +276,6 @@ left_animate:
     mov     r1,#kc_left & 0ffh    
     mov     r7,#8
     call    copy_sprite
-
-    ; set flag to zero
-    mov     r0,#animation_flag
-    mov     @r0,#000h
-
     jmp     game_loop
 
 
@@ -291,11 +284,6 @@ right_animate:
     mov     r1,#kc_right & 0ffh    
     mov     r7,#8
     call    copy_sprite
-
-    ; set flag to zero
-    mov     r0,#animation_flag
-    mov     @r0,#000h
-
     jmp     game_loop
 
 
@@ -304,11 +292,6 @@ down_animate:
     mov     r1,#kc_down & 0ffh    
     mov     r7,#8
     call    copy_sprite
-
-    ; set flag to zero
-    mov     r0,#animation_flag
-    mov     @r0,#000h
-
     jmp     game_loop
 
 up_animate:
@@ -316,11 +299,6 @@ up_animate:
     mov     r1,#kc_up & 0ffh    
     mov     r7,#8
     call    copy_sprite
-
-    ; set flag to zero
-    mov     r0,#animation_flag
-    mov     @r0,#000h
-
     jmp     game_loop
 
 closed_animate:
@@ -328,11 +306,6 @@ closed_animate:
     mov     r1,#kc_closed & 0ffh    
     mov     r7,#8
     call    copy_sprite
-
-    ;set flag to one
-    mov     r0,#animation_flag
-    mov     @r0,#1
-
     jmp     game_loop
 
 
@@ -526,6 +499,7 @@ kc_closed:
     db  00000000b
 
 kc_down:
+    db  00000000b
     db	10010000b
     db  01111100b
     db  11111110b
@@ -533,7 +507,6 @@ kc_down:
     db  11100111b
     db  11000011b 
     db  10000001b
-    db  00000000b
 
 kc_up:
     db	00000000b
