@@ -11,10 +11,7 @@
 	jmp     soundirq				    ; sound-interrupt
 
 ; Internal RAM variables
-iram_score_start        equ     020h    ; First 8 bits of score
-iram_score_end          equ     021h    ; Second 8 bits of score
-animation_flag			equ     022h    ; animation_flag
-
+animation_flag		    equ     022h    ; Used for alternating animation frames
 
 
 ; Page 1 - Initialization routines (except grid) and main loop
@@ -49,11 +46,11 @@ init_sprites:
     call    copy_sprite
     mov     r0,#000h                    ; y position set
     movx    a,@r0
-    mov     a,#130
+    mov     a,#100
     movx    @r0,a
     mov     r0,#001h                    ; x position set
     movx    a,@r0 
-    mov     a,#75
+    mov     a,#77
     movx    @r0,a
     mov     r0,#002h                    ; color
     movx    a,@r0
@@ -67,11 +64,11 @@ init_sprites:
     call    copy_sprite
     mov     r0,#004h                    ; y position set
     movx    a,@r0
-    mov     a,#100
+    mov     a,#125
     movx    @r0,a
     mov     r0,#005h                    ; x position set
     movx    a,@r0 
-    mov     a,#70
+    mov     a,#77
     movx    @r0,a
     mov     r0,#006h                    ; color
     movx    a,@r0
@@ -85,11 +82,11 @@ init_sprites:
     call    copy_sprite
     mov     r0,#008h                    ; y position set
     movx    a,@r0
-    mov     a,#100
+    mov     a,#125
     movx    @r0,a
     mov     r0,#009h                    ; x position set
     movx    a,@r0 
-    mov     a,#80
+    mov     a,#77
     movx    @r0,a
     mov     r0,#00Ah                    ; color
     movx    a,@r0
@@ -103,11 +100,11 @@ init_sprites:
     call    copy_sprite
     mov     r0,#00Ch                    ; y position set
     movx    a,@r0
-    mov     a,#70
+    mov     a,#125
     movx    @r0,a
     mov     r0,#00Dh                    ; x position set
     movx    a,@r0 
-    mov     a,#75
+    mov     a,#62
     movx    @r0,a
     mov     r0,#00Eh                    ; color
     movx    a,@r0
@@ -137,7 +134,8 @@ game_loop:
     ; Read joystick and move
     call    move_player
 
-    jmp game_loop
+
+    jmp     game_loop
 
 
 ; Calls movement routines for player
@@ -190,11 +188,7 @@ move_up:
     add     a,#0ffh
     movx    @r1,a
 
-    
-
     ; For alternating animation frames
-    ; If i'm being completely honest i dont know why this works
-    ; Like it literally doesnt matter if i set the flag anywhere or not
     anl     a,#animation_flag
     jnz     up_animate
     jmp     closed_animate
@@ -214,6 +208,7 @@ move_down:
     jnz     down_animate
     jmp     closed_animate
 
+
 ; Move player sprite left
 move_left:
 
@@ -227,7 +222,6 @@ move_left:
     anl     a,#animation_flag
     jnz     left_animate
     jmp     closed_animate
-
 
 
 ; Move player sprite right
@@ -262,12 +256,14 @@ kc_grid_col_check:
 kc_col_grid:
 
     mov     r0,#000h
-    mov     a,r2 
+    mov     a,r2
+    ;inc     a
     movx    @r0,a  
     mov     r0,#001h
-    mov     a,r3    
+    mov     a,r3
+    ;inc     a    
     movx    @r0,a
-
+    
     jmp     game_loop    
 
 
@@ -276,6 +272,8 @@ left_animate:
     mov     r1,#kc_left & 0ffh    
     mov     r7,#8
     call    copy_sprite
+    call    alternate_animation
+
     jmp     game_loop
 
 
@@ -284,6 +282,8 @@ right_animate:
     mov     r1,#kc_right & 0ffh    
     mov     r7,#8
     call    copy_sprite
+    call    alternate_animation
+
     jmp     game_loop
 
 
@@ -292,6 +292,8 @@ down_animate:
     mov     r1,#kc_down & 0ffh    
     mov     r7,#8
     call    copy_sprite
+    call    alternate_animation
+
     jmp     game_loop
 
 up_animate:
@@ -299,13 +301,18 @@ up_animate:
     mov     r1,#kc_up & 0ffh    
     mov     r7,#8
     call    copy_sprite
+    call    alternate_animation
+
     jmp     game_loop
 
 closed_animate:
+    
     mov     r0,#vdc_spr0_shape         
     mov     r1,#kc_closed & 0ffh    
     mov     r7,#8
     call    copy_sprite
+    call    alternate_animation
+
     jmp     game_loop
 
 
@@ -315,6 +322,16 @@ neutral_animate:
     mov     r7,#8
     call    copy_sprite
 
+    jmp game_loop
+
+
+; Flips bits in animation flag
+alternate_animation:
+    mov     r1,#animation_flag
+    mov     a,r1
+    cpl     a
+    mov     @r1,a    
+    ret
 
 ; ***NEW PAGE***
 ; Need sprites and copy sprite that accesses them on same page
@@ -329,68 +346,65 @@ init_grid:
     mov     a,#col_grd_yellow
     movx    @r0,a
 
-    ; Create vertical lines on both edges
-    mov     r0,#vdc_gridv0
-    mov     a,#01111111b
-    movx    @r0,a
-    mov     r0,#vdc_gridv9
-    mov     a,#01111111b
-    movx    @r0,a
-
-
     ; Set horizontal lines
     mov     r0,#vdc_gridh0
-    mov     a,#10000001b
+    mov     a,#10111001b
     movx    @r0,a
     mov     r0,#vdc_gridh1
-    mov     a,#10000001b
+    mov     a,#10000111b
     movx    @r0,a
     mov     r0,#vdc_gridh2
-    mov     a,#10000001b
+    mov     a,#10110001b
     movx    @r0,a
     mov     r0,#vdc_gridh3
-    mov     a,#10000001b
+    mov     a,#11001101b
     movx    @r0,a
     mov     r0,#vdc_gridh4
-    mov     a,#10000001b
+    mov     a,#11010001b
     movx    @r0,a
     mov     r0,#vdc_gridh5
-    mov     a,#10000001b
+    mov     a,#11001011b
     movx    @r0,a
     mov     r0,#vdc_gridh6
-    mov     a,#10000001b
+    mov     a,#10110101b
     movx    @r0,a
     mov     r0,#vdc_gridh7
-    mov     a,#10000001b
+    mov     a,#11001011b
     movx    @r0,a
     mov     r0,#vdc_gridh8
-    mov     a,#10000001b
+    mov     a,#10110101b
     movx    @r0,a
 
     ; Set vertical lines
+    mov     r0,#vdc_gridv0
+    mov     a,#01101111b
+    movx    @r0,a
     mov     r0,#vdc_gridv1
-    mov     a,#00000000b
+    mov     a,#00100000b
     movx    @r0,a
     mov     r0,#vdc_gridv2
-    mov     a,#00000000b
+    mov     a,#01000101b
     movx    @r0,a
     mov     r0,#vdc_gridv3
-    mov     a,#00000000b
+    mov     a,#00101010b
     movx    @r0,a
     mov     r0,#vdc_gridv4
-    mov     a,#00000000b
+    mov     a,#00010001b
     movx    @r0,a
     mov     r0,#vdc_gridv5
-    mov     a,#00000000b
+    mov     a,#00010010b
     movx    @r0,a
     mov     r0,#vdc_gridv6
-    mov     a,#00000000b
+    mov     a,#00100101b
     movx    @r0,a
     mov     r0,#vdc_gridv7
-    mov     a,#00000000b
+    mov     a,#01001000b
     movx    @r0,a
     mov     r0,#vdc_gridv8
     mov     a,#00000000b
+    movx    @r0,a
+    mov     r0,#vdc_gridv9
+    mov     a,#01101111b
     movx    @r0,a
 
     ret
