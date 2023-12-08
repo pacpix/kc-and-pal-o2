@@ -11,11 +11,6 @@
 	jmp     soundirq				    ; sound-interrupt
 
 ; Internal RAM variables
-animation_flag		    equ     022h    ; Used for alternating animation frames
-
-
-; Page 1 - Initialization routines (except grid) and main loop
-    align   256
 
 
 ; Timer not used
@@ -46,11 +41,11 @@ init_sprites:
     call    copy_sprite
     mov     r0,#000h                    ; y position set
     movx    a,@r0
-    mov     a,#100
+    mov     a,#175
     movx    @r0,a
     mov     r0,#001h                    ; x position set
     movx    a,@r0 
-    mov     a,#77
+    mov     a,#143
     movx    @r0,a
     mov     r0,#002h                    ; color
     movx    a,@r0
@@ -114,26 +109,18 @@ init_sprites:
     ret
 
 
-; Page 2
-    align 256
+
 ; Loop that runs for every game frame
 game_loop:
     
-    ; Activate collision check for kc sprite on next frame
-    mov     r0,#vdc_collision
-    mov     a,#vdc_coll_spr0
-    movx    @r0,a 
 
     ; Advance one frame
     call    gfxon
     call    waitvsync            
     call    gfxoff
 
-    ; Check collision and move sprite back if collided
-    call    kc_grid_col_check
-    ; Read joystick and move
+    ; Read joystick and move  
     call    move_player
-
 
     jmp     game_loop
 
@@ -142,28 +129,19 @@ game_loop:
 move_player:
 
     ; Get joystick 0 movement
-    mov     r1,#000h                    ; select joystick 0
-    call    getjoystick
-    mov     a,r1 
+    mov     r1,#000h                    ; select joystick 0, r1 will be passed to call
+    call    getjoystick                 ; stores joystick bits in r1
+    mov     a,r1                        
     cpl     a 
     mov     r1,a                        ; save joystick bits
 
-    ; Store initial X and Y values
-    mov     r0,#000h                    ; y position 
-    movx    a,@r0
-    mov     r2,a
-    mov     r0,#001h                    ; x position  
-    movx    a,@r0
-    mov     r3,a  
-
-    ; Joystick bits in BIOS 0 = Up, 1 = Right, 2 = Down, 3 = Left, 4 = Fire
-    ; "stored movement" AND with BIOS value to determine which bit set
+    ; joystick bits AND with BIOS value to determine which bit set
     mov     a,r1
     anl     a,#001h
     jnz     move_up
 
-    mov     a,r1 
-    anl     a,#002h             
+    mov     a,r1
+    anl     a,#002h
     jnz     move_right
 
     mov     a,r1
@@ -174,8 +152,6 @@ move_player:
     anl     a,#008h
     jnz     move_left
 
-    call    neutral_animate
-
     ret
 
 
@@ -185,43 +161,12 @@ move_up:
     ; Move sprite
     mov     r1,#000h
     movx    a,@r1
-    add     a,#0ffh
+    cpl     a
+    add     a,#019h
+    cpl     a
     movx    @r1,a
 
-    ; For alternating animation frames
-    anl     a,#animation_flag
-    jnz     up_animate
-    jmp     closed_animate
-
-
-; Move player sprite down
-move_down:
-
-    ; Move sprite
-    mov     r1,#000h
-    movx    a,@r1 
-    add     a,#001h 
-    movx    @r1,a
-
-    ; For alternating animation frames
-    anl     a,#animation_flag
-    jnz     down_animate
-    jmp     closed_animate
-
-
-; Move player sprite left
-move_left:
-
-    ; Move sprite
-    mov     r1,#001h
-    movx    a,@r1 
-    add     a,#0ffh 
-    movx    @r1,a
-
-    ; For alternating animation frames
-    anl     a,#animation_flag
-    jnz     left_animate
-    jmp     closed_animate
+    ret
 
 
 ; Move player sprite right
@@ -229,113 +174,36 @@ move_right:
 
     ; Move sprite
     mov     r1,#001h
-    movx    a,@r1 
-    add     a,#001h 
+    movx    a,@r1
+    add     a,#00Fh
     movx    @r1,a
 
-    ; For alternating animation frames
-    anl     a,#animation_flag
-    jnz     right_animate
-    jmp     closed_animate
+    ret
 
+; Move player sprite down
+move_down:
 
-; Checks if kc is colliding with grid
-; If collision, move back to pre-movement position
-kc_grid_col_check: 
-
-    ; Check for collision of player with grid
-    ; Bit 5 is horizontal, bit 4 is vertical
-    mov     r0,#iram_collision
-    mov     a,@r0
-    anl     a,#00110000b
-    jnz     kc_col_grid
+    ; Move sprite
+    mov     r1,#000h
+    movx    a,@r1
+    add     a,#019h
+    movx    @r1,a
 
     ret
 
-; Moves kc back if collide with grid     
-kc_col_grid:
+; Move player sprite left
+move_left:
 
-    mov     r0,#000h
-    mov     a,r2
-    ;inc     a
-    movx    @r0,a  
-    mov     r0,#001h
-    mov     a,r3
-    ;inc     a    
-    movx    @r0,a
-    
-    jmp     game_loop    
-
-
-left_animate:
-    mov     r0,#vdc_spr0_shape         
-    mov     r1,#kc_left & 0ffh    
-    mov     r7,#8
-    call    copy_sprite
-    call    alternate_animation
-
-    jmp     game_loop
-
-
-right_animate:
-    mov     r0,#vdc_spr0_shape         
-    mov     r1,#kc_right & 0ffh    
-    mov     r7,#8
-    call    copy_sprite
-    call    alternate_animation
-
-    jmp     game_loop
-
-
-down_animate:
-    mov     r0,#vdc_spr0_shape         
-    mov     r1,#kc_down & 0ffh    
-    mov     r7,#8
-    call    copy_sprite
-    call    alternate_animation
-
-    jmp     game_loop
-
-up_animate:
-    mov     r0,#vdc_spr0_shape         
-    mov     r1,#kc_up & 0ffh    
-    mov     r7,#8
-    call    copy_sprite
-    call    alternate_animation
-
-    jmp     game_loop
-
-closed_animate:
-    
-    mov     r0,#vdc_spr0_shape         
-    mov     r1,#kc_closed & 0ffh    
-    mov     r7,#8
-    call    copy_sprite
-    call    alternate_animation
-
-    jmp     game_loop
-
-
-neutral_animate:
-    mov     r0,#vdc_spr0_shape         
-    mov     r1,#kc_neutral & 0ffh    
-    mov     r7,#8
-    call    copy_sprite
-
-    jmp game_loop
-
-
-; Flips bits in animation flag
-alternate_animation:
-    mov     r1,#animation_flag
-    mov     a,r1
+    ; Move sprite
+    mov     r1,#001h
+    movx    a,@r1
     cpl     a
-    mov     @r1,a    
+    add     a,#00Fh
+    cpl     a
+    movx    @r1,a
+
     ret
 
-; ***NEW PAGE***
-; Need sprites and copy sprite that accesses them on same page
-    align   256
 
 ; Initialize grid at start of game
 ; Note: bit 7 = bottom of grid
