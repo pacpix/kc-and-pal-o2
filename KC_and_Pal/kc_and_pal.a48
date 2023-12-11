@@ -11,6 +11,9 @@
 	jmp     soundirq				    ; sound-interrupt
 
 ; Internal RAM variables
+; Space available: 0x20h to 0x3ch (29 bytes)
+valid_move  equ 020h
+animation_flag  equ 023h
 
 
 ; Timer not used
@@ -113,17 +116,20 @@ init_sprites:
 ; Loop that runs for every game frame
 game_loop:
     
-
-    ; Advance one frame
-    call    gfxon
-    call    waitvsync            
-    call    gfxoff
+    call    frame_advance
 
     ; Read joystick and move  
     call    move_player
 
     jmp     game_loop
 
+frame_advance:
+    ; Advance one frame
+    call    gfxon
+    call    waitvsync            
+    call    gfxoff
+
+    ret
 
 ; Calls movement routines for player
 move_player:
@@ -151,6 +157,8 @@ move_player:
     mov     a,r1
     anl     a,#008h
     jnz     move_left
+
+    call    neutral_animate
 
     ret
 
@@ -198,10 +206,59 @@ move_left:
     mov     r1,#001h
     movx    a,@r1
     cpl     a
-    add     a,#00Fh
+    add     a,#001h
     cpl     a
     movx    @r1,a
 
+    ret
+
+
+left_animation:
+    mov     r0,#vdc_spr0_shape         
+    mov     r1,#kc_left & 0ffh    
+    mov     r7,#8
+    call    copy_sprite
+
+
+    call    frame_advance
+
+
+    mov     r5, #04h
+testingx:
+    mov     r6, #15h
+    call    closed_animate
+    call    frame_advance
+testingy:
+    djnz    r6, testingy
+    djnz    r5, testingx
+    jmp     move_left
+
+
+
+neutral_animate:
+    mov     r0,#vdc_spr0_shape         
+    mov     r1,#kc_neutral & 0ffh    
+    mov     r7,#8
+    call    copy_sprite
+
+    ret
+
+alternate_animation:
+    mov     r1,#animation_flag
+    mov     a,r1
+    cpl     a
+    mov     @r1,a    
+    
+    ret
+
+closed_animate:
+    
+    mov     r0,#vdc_spr0_shape         
+    mov     r1,#kc_closed & 0ffh    
+    mov     r7,#8
+    call    copy_sprite
+    call    alternate_animation
+    
     ret
 
 
